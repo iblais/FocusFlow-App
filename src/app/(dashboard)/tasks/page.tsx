@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { TaskForm } from "@/components/tasks/task-form";
 import { TaskCard } from "@/components/tasks/task-card";
@@ -32,7 +32,7 @@ export default function TasksPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -54,11 +54,11 @@ export default function TasksPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     fetchTasks();
-  }, [statusFilter]);
+  }, [fetchTasks]);
 
   const handleStatusChange = async (taskId: string, status: string) => {
     try {
