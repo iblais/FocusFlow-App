@@ -5,10 +5,6 @@ import { AIBreakdownSchema, MicroStep } from "@/types/task";
 import { z } from "zod";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 // POST /api/ai/breakdown - Break down a task into micro-steps
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +27,11 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
+
+    // Initialize OpenAI client at runtime (not at module load)
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     // Build the prompt with ADHD-specific considerations
     const systemPrompt = `You are an expert task breakdown assistant specializing in ADHD task management.
