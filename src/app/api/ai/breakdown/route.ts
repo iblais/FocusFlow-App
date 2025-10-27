@@ -99,22 +99,23 @@ Break this down into micro-steps:`;
       microSteps = Array.isArray(parsed) ? parsed : parsed.steps || parsed.microSteps || [];
 
       // Validate each step
-      microSteps = microSteps.map((step: unknown) => {
-        const validated = {
+      microSteps = microSteps.map((step: unknown): MicroStep => {
+        const energyRaw = typeof step === "object" && step !== null && "energy" in step
+          ? String(step.energy).toUpperCase()
+          : "MEDIUM";
+
+        // Ensure energy is valid and typed correctly
+        const energy: "LOW" | "MEDIUM" | "HIGH" =
+          energyRaw === "LOW" || energyRaw === "MEDIUM" || energyRaw === "HIGH"
+            ? energyRaw
+            : "MEDIUM";
+
+        return {
           step: typeof step === "object" && step !== null && "step" in step ? String(step.step) : "",
           time: typeof step === "object" && step !== null && "time" in step ? Number(step.time) : 10,
-          energy: typeof step === "object" && step !== null && "energy" in step
-            ? String(step.energy).toUpperCase()
-            : "MEDIUM",
+          energy,
           completed: false,
         };
-
-        // Ensure energy is valid
-        if (!["LOW", "MEDIUM", "HIGH"].includes(validated.energy)) {
-          validated.energy = "MEDIUM";
-        }
-
-        return validated;
       });
     } catch (parseError) {
       console.error("Error parsing OpenAI response:", parseError);
