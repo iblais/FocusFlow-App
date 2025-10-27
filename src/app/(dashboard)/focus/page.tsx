@@ -1,56 +1,41 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Timer } from "lucide-react";
+import { PomodoroTimer } from "@/components/focus/pomodoro-timer";
 
 export default function FocusPage() {
   return (
     <div className="p-6 lg:p-8 space-y-6 pb-20 lg:pb-8">
-      <div>
+      <div className="text-center">
         <h1 className="text-3xl font-bold">Focus Timer</h1>
-        <p className="text-muted-foreground">
-          Start a focus session to boost your productivity
+        <p className="text-muted-foreground mt-2">
+          Use the Pomodoro technique to boost your productivity and maintain focus
         </p>
       </div>
 
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle>Pomodoro Timer</CardTitle>
-          <CardDescription>
-            25 minutes of focused work, followed by a 5-minute break
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center space-y-8">
-          <div className="text-6xl font-bold text-indigo-600">
-            25:00
+      <PomodoroTimer />
+
+      {/* Quick Tips */}
+      <div className="max-w-2xl mx-auto space-y-4 pt-4">
+        <h2 className="text-lg font-semibold">How it works</h2>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="p-4 rounded-lg bg-indigo-50 border border-indigo-100">
+            <p className="font-medium text-indigo-900 mb-1">1. Focus (25 min)</p>
+            <p className="text-sm text-indigo-700">
+              Work on a single task with full concentration
+            </p>
           </div>
-          <div className="flex gap-3">
-            <Button size="lg">
-              <Timer className="mr-2 h-5 w-5" />
-              Start Session
-            </Button>
-            <Button size="lg" variant="outline">
-              Reset
-            </Button>
+          <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-100">
+            <p className="font-medium text-emerald-900 mb-1">2. Short Break (5 min)</p>
+            <p className="text-sm text-emerald-700">
+              Stretch, hydrate, or take a quick walk
+            </p>
           </div>
-          <div className="w-full space-y-2">
-            <p className="text-sm text-muted-foreground">Session Stats</p>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-xs text-muted-foreground">Sessions</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-xs text-muted-foreground">Distractions</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-xs text-muted-foreground">XP Earned</p>
-              </div>
-            </div>
+          <div className="p-4 rounded-lg bg-amber-50 border border-amber-100">
+            <p className="font-medium text-amber-900 mb-1">3. Long Break (15 min)</p>
+            <p className="text-sm text-amber-700">
+              After 4 sessions, take a longer rest
+            </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
