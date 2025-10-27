@@ -1,0 +1,283 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth.js models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// FocusFlow Core Models
+enum UserType {
+  ADULT
+  STUDENT
+  TEEN
+  PARENT
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  type          UserType  @default(ADULT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  profile       UserProfile?
+  tasks         Task[]
+  focusSessions FocusSession[]
+  achievements  UserAchievement[]
+  dailyCheckins DailyCheckin[]
+  rewards       Reward[]
+
+  @@index([email])
+}
+
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Energy patterns (JSON array of time-based energy levels)
+  energyPatterns Json?
+
+  // Focus stats (JSON object with various metrics)
+  focusStats Json?
+
+  // Executive Function scores (0-100)
+  efPlanning        Int @default(50)
+  efWorkingMemory   Int @default(50)
+  efInhibition      Int @default(50)
+  efFlexibility     Int @default(50)
+  efTimeManagement  Int @default(50)
+  efSelfMonitoring  Int @default(50)
+
+  // Gamification
+  totalXP           Int @default(0)
+  level             Int @default(1)
+  currentStreak     Int @default(0)
+  longestStreak     Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TaskStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  DEFERRED
+}
+
+enum EnergyLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Task {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String?     @db.Text
+
+  // Hierarchy
+  parentTaskId    String?
+  parentTask      Task?       @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
+  subTasks        Task[]      @relation("TaskHierarchy")
+
+  // AI breakdown (JSON array of micro-steps)
+  microSteps      Json?
+
+  // Time tracking
+  estimatedTime   Int?        // in minutes
+  actualTime      Int?        // in minutes
+
+  // Energy & difficulty
+  energyLevel     EnergyLevel @default(MEDIUM)
+  difficulty      Int?        // 1-10 scale
+
+  // Status
+  status          TaskStatus  @default(PENDING)
+  completedAt     DateTime?
+  deferredUntil   DateTime?
+
+  // Metadata
+  tags            String[]
+  priority        Int         @default(0)
+  dueDate         DateTime?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  focusSessions   FocusSession[]
+
+  @@index([userId, status])
+  @@index([parentTaskId])
+}
+
+model FocusSession {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  taskId            String?
+  task              Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  // Session details
+  startTime         DateTime @default(now())
+  endTime           DateTime?
+  duration          Int?     // in seconds
+  completed         Boolean  @default(false)
+
+  // Distractions (JSON array of distraction events)
+  distractions      Json?
+  distractionCount  Int      @default(0)
+
+  // Neurofeedback metrics
+  hrv               Json?    // Heart rate variability data
+  breathingQuality  Int?     // 0-100 score
+
+  // Gamification
+  xpEarned          Int      @default(0)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId, startTime])
+  @@index([taskId])
+}
+
+model DailyCheckin {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date            DateTime @default(now())
+
+  // Mood & energy
+  mood            Int      // 1-5 scale
+  energyLevel     Int      // 1-5 scale
+  sleepQuality    Int?     // 1-5 scale
+
+  // Goals
+  topPriorities   Json?    // Array of task IDs or text
+  intentions      String?  @db.Text
+
+  // Reflections
+  wins            String?  @db.Text
+  challenges      String?  @db.Text
+  gratitude       String?  @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+enum AchievementType {
+  STREAK
+  FOCUS_TIME
+  TASKS_COMPLETED
+  XP_MILESTONE
+  SPECIAL
+}
+
+model Achievement {
+  id          String          @id @default(cuid())
+  name        String
+  description String
+  type        AchievementType
+  criteria    Json            // Criteria for unlocking (e.g., {streakDays: 7})
+  xpReward    Int             @default(0)
+  iconUrl     String?
+
+  createdAt   DateTime        @default(now())
+
+  // Relations
+  userAchievements UserAchievement[]
+
+  @@unique([name])
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+model Reward {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  cost        Int      // XP cost
+  claimed     Boolean  @default(false)
+  claimedAt   DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, claimed])
+}
