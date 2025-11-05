@@ -1,115 +1,141 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus, Zap, Target, TrendingUp } from "lucide-react";
+'use client';
+
+import { Plus, Zap, Target, TrendingUp, Sparkles } from "lucide-react";
+import { AnimatedBackground } from "@/components/design/AnimatedBackground";
+import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, GlassCardContent } from "@/components/design/GlassCard";
+import { NeumorphButton } from "@/components/design/NeumorphButton";
+import { AnimatedStat } from "@/components/design/AnimatedNumber";
+import { FloatingParticles } from "@/components/design/FloatingParticles";
+import { motion } from "framer-motion";
+import { useParticleRewards } from "@/hooks/use-particle-rewards";
 
 export default function HomePage() {
-  return (
-    <div className="p-6 lg:p-8 space-y-8 pb-20 lg:pb-8">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Welcome back!</h1>
-        <p className="text-muted-foreground">
-          Ready to focus and make progress today?
-        </p>
-      </div>
+  const { triggerConfetti } = useParticleRewards();
 
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Current Streak
-            </CardTitle>
-            <Zap className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0 days</div>
-            <p className="text-xs text-muted-foreground">
+  const handleStartCheckin = () => {
+    triggerConfetti('focusSession');
+  };
+
+  return (
+    <AnimatedBackground>
+      <FloatingParticles count={10} colorScheme="focus" />
+
+      <div className="p-6 lg:p-8 space-y-8 pb-20 lg:pb-8">
+        {/* Header */}
+        <motion.div
+          className="space-y-2"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Welcome back!
+          </h1>
+          <p className="text-slate-600">
+            Ready to focus and make progress today?
+          </p>
+        </motion.div>
+
+        {/* Quick Stats */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <GlassCard variant="light">
+            <AnimatedStat
+              value={0}
+              label="Current Streak"
+              suffix=" days"
+              icon={<Zap className="h-5 w-5 text-white" />}
+              gradient="from-amber-400 to-orange-500"
+            />
+            <p className="text-xs text-slate-600 mt-2">
               Keep it going!
             </p>
-          </CardContent>
-        </Card>
+          </GlassCard>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Tasks Today
-            </CardTitle>
-            <Target className="h-4 w-4 text-indigo-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0/0</div>
-            <p className="text-xs text-muted-foreground">
+          <GlassCard variant="light">
+            <AnimatedStat
+              value={0}
+              label="Tasks Today"
+              suffix="/0"
+              icon={<Target className="h-5 w-5 text-white" />}
+              gradient="from-indigo-500 to-purple-500"
+            />
+            <p className="text-xs text-slate-600 mt-2">
               No tasks yet
             </p>
-          </CardContent>
-        </Card>
+          </GlassCard>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total XP
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0 XP</div>
-            <p className="text-xs text-muted-foreground">
+          <GlassCard variant="light">
+            <AnimatedStat
+              value={0}
+              label="Total XP"
+              suffix=" XP"
+              icon={<TrendingUp className="h-5 w-5 text-white" />}
+              gradient="from-emerald-400 to-teal-500"
+            />
+            <p className="text-xs text-slate-600 mt-2">
               Level 1
             </p>
-          </CardContent>
-        </Card>
+          </GlassCard>
+        </div>
+
+        {/* Daily Check-in */}
+        <GlassCard variant="medium">
+          <GlassCardHeader>
+            <GlassCardTitle>Daily Check-in</GlassCardTitle>
+            <GlassCardDescription>
+              How are you feeling today? Set your intentions for a productive day.
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <NeumorphButton
+              variant="primary"
+              onClick={handleStartCheckin}
+              icon={<Sparkles className="h-4 w-4" />}
+            >
+              Start Daily Check-in
+            </NeumorphButton>
+          </GlassCardContent>
+        </GlassCard>
+
+        {/* Quick Actions */}
+        <GlassCard variant="medium">
+          <GlassCardHeader>
+            <GlassCardTitle>Quick Actions</GlassCardTitle>
+            <GlassCardDescription>
+              Get started with your most common tasks
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="grid gap-3 md:grid-cols-2">
+            <NeumorphButton
+              variant="secondary"
+              icon={<Plus className="h-4 w-4" />}
+            >
+              Add New Task
+            </NeumorphButton>
+            <NeumorphButton
+              variant="energy"
+              icon={<Zap className="h-4 w-4" />}
+            >
+              Start Focus Session
+            </NeumorphButton>
+          </GlassCardContent>
+        </GlassCard>
+
+        {/* Today's Tasks */}
+        <GlassCard variant="light">
+          <GlassCardHeader>
+            <GlassCardTitle>Today&apos;s Tasks</GlassCardTitle>
+            <GlassCardDescription>
+              Your top priorities for today
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <div className="text-sm text-slate-600 text-center py-8">
+              No tasks scheduled for today. Add your first task to get started!
+            </div>
+          </GlassCardContent>
+        </GlassCard>
       </div>
-
-      {/* Daily Check-in */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Daily Check-in</CardTitle>
-          <CardDescription>
-            How are you feeling today? Set your intentions for a productive day.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button>
-            Start Daily Check-in
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>
-            Get started with your most common tasks
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          <Button variant="outline" className="justify-start">
-            <Plus className="mr-2 h-4 w-4" />
-            Add New Task
-          </Button>
-          <Button variant="outline" className="justify-start">
-            <Zap className="mr-2 h-4 w-4" />
-            Start Focus Session
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Today's Tasks */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Today's Tasks</CardTitle>
-          <CardDescription>
-            Your top priorities for today
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground text-center py-8">
-            No tasks scheduled for today. Add your first task to get started!
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    </AnimatedBackground>
   );
 }
