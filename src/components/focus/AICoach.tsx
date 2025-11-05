@@ -140,6 +140,7 @@ export function AICoach({
       showMessage(nextMessage);
       lastMessageTimeRef.current = currentTime;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionDuration, isActive, consecutiveSessions]);
 
   // Reset on session start
