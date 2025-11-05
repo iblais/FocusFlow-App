@@ -46,6 +46,7 @@ export function useServiceWorkerTimer() {
         navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleServiceWorkerMessage = (event: MessageEvent) => {

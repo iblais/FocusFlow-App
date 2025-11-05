@@ -123,6 +123,7 @@ export function BreathingDetector({ onBreathDetected, isActive }: BreathingDetec
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, isMicActive]);
 
   const getStressColor = () => {

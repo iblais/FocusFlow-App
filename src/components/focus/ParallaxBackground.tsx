@@ -68,6 +68,12 @@ export function ParallaxBackground() {
 
   const gradients = getThemeGradients();
 
+  // Pre-create parallax transforms (must be outside map)
+  const layer1Y = useTransform(scrollY, [0, 1000], [0, layers[0].speed * 500]);
+  const layer2Y = useTransform(scrollY, [0, 1000], [0, layers[1].speed * 500]);
+  const layer3Y = useTransform(scrollY, [0, 1000], [0, layers[2].speed * 500]);
+  const layerTransforms = [layer1Y, layer2Y, layer3Y];
+
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden">
       {/* Sky background */}
@@ -158,14 +164,11 @@ export function ParallaxBackground() {
       )}
 
       {/* Mountain layers with parallax */}
-      {layers.map((layer, index) => {
-        const y = useTransform(scrollY, [0, 1000], [0, layer.speed * 500]);
-
-        return (
+      {layers.map((layer, index) => (
           <motion.div
             key={layer.id}
             className="absolute bottom-0 left-0 right-0"
-            style={{ y }}
+            style={{ y: layerTransforms[index] }}
           >
             <svg
               viewBox="0 0 1200 400"
@@ -230,8 +233,7 @@ export function ParallaxBackground() {
               />
             </svg>
           </motion.div>
-        );
-      })}
+      ))}
 
       {/* Foreground trees/vegetation silhouettes */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-900/20 to-transparent" />
