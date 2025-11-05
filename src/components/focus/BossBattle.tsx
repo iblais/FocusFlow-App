@@ -70,6 +70,7 @@ export function BossBattle({
       triggerConfetti('achievement');
       onVictory?.();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionDuration, isActive, targetDuration, isVictorious]);
 
   // Boss attacks based on distractions
@@ -93,6 +94,7 @@ export function BossBattle({
         onDefeat?.();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [distractionCount]);
 
   const addBattleLog = (message: string) => {

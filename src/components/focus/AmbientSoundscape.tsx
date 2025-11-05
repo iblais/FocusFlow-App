@@ -168,6 +168,7 @@ export function AmbientSoundscape({ isActive = true }: AmbientSoundscapeProps) {
     return () => {
       stopAllSounds();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSound, isActive, volume, isMuted]);
 
   // Update volume

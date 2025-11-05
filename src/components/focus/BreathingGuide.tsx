@@ -47,6 +47,7 @@ export function BreathingGuide({ isActive, size = 200 }: BreathingGuideProps) {
     };
 
     runBreathingCycle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
 
   const getScaleForPhase = (): number => {
