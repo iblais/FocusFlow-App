@@ -4,16 +4,21 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PomodoroTimer } from '@/components/focus/pomodoro-timer';
 import { BreathingGuide } from '@/components/focus/BreathingGuide';
+import { BreathingDetector } from '@/components/focus/BreathingDetector';
 import { FocusPet } from '@/components/focus/FocusPet';
 import { AmbientSoundscape } from '@/components/focus/AmbientSoundscape';
 import { ComboMultiplier, PowerUpType } from '@/components/focus/ComboMultiplier';
 import { AICoach } from '@/components/focus/AICoach';
 import { ParallaxBackground } from '@/components/focus/ParallaxBackground';
 import { BossBattle } from '@/components/focus/BossBattle';
+import { DistractionShield } from '@/components/focus/DistractionShield';
 import { GlassCard } from '@/components/design/GlassCard';
 import { NeumorphButton } from '@/components/design/NeumorphButton';
-import { Settings2, Target, Sparkles } from 'lucide-react';
+import { Settings2, Target, Sparkles, Shield } from 'lucide-react';
 import { useTimerStore } from '@/lib/stores/timer-store';
+import { useServiceWorkerTimer } from '@/hooks/use-service-worker-timer';
+import { focusSessionsDB } from '@/lib/db/focus-sessions-db';
+import { useParticleRewards } from '@/hooks/use-particle-rewards';
 
 type FocusMode = 'standard' | 'breathing' | 'boss-battle';
 
@@ -25,9 +30,13 @@ export default function FocusPage() {
   const [activePowerUp, setActivePowerUp] = useState<PowerUpType>('none');
   const [sessionDuration, setSessionDuration] = useState(0);
   const [isFocusBubble, setIsFocusBubble] = useState(false);
+  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
 
   const { status, mode } = useTimerStore();
   const isTimerActive = status === 'running' && mode === 'focus';
+  const { triggerConfetti } = useParticleRewards();
+  const swTimer = useServiceWorkerTimer();
 
   // Update session duration
   useEffect(() => {
@@ -48,7 +57,56 @@ export default function FocusPage() {
   const handleBossVictory = () => {
     setConsecutiveSessions((prev) => prev + 1);
     setTotalFocusMinutes((prev) => prev + 90);
+    triggerConfetti('achievement');
   };
+
+  const handleEmergencyExit = async (reason: string) => {
+    console.log('Emergency exit reason:', reason);
+
+    // Save partial session to IndexedDB
+    if (currentSessionId) {
+      await focusSessionsDB.updateSession(currentSessionId, {
+        endTime: Date.now(),
+        duration: sessionDuration,
+        distractionCount: 1, // Emergency exit counts as distraction
+      });
+    }
+
+    // Stop timer
+    setSessionDuration(0);
+    triggerConfetti('focusSession');
+  };
+
+  // Start a new session in IndexedDB
+  useEffect(() => {
+    if (isTimerActive && !currentSessionId) {
+      const startSession = async () => {
+        const sessionId = await focusSessionsDB.addSession({
+          startTime: Date.now(),
+          duration: 0,
+          mode: 'focus',
+          distractionCount: 0,
+          xpEarned: 0,
+          powerUpsUsed: activePowerUp !== 'none' ? [activePowerUp] : [],
+          synced: false,
+          createdAt: Date.now(),
+        });
+        setCurrentSessionId(sessionId);
+      };
+      startSession();
+    } else if (!isTimerActive && currentSessionId) {
+      // Complete session
+      const completeSession = async () => {
+        await focusSessionsDB.updateSession(currentSessionId, {
+          endTime: Date.now(),
+          duration: sessionDuration,
+          xpEarned: Math.floor(sessionDuration / 60) * 10, // 10 XP per minute
+        });
+        setCurrentSessionId(null);
+      };
+      completeSession();
+    }
+  }, [isTimerActive, currentSessionId, sessionDuration, activePowerUp]);
 
   return (
     <>
@@ -133,12 +191,21 @@ export default function FocusPage() {
           </div>
 
           {/* Focus Bubble Toggle */}
-          <button
-            onClick={() => setIsFocusBubble(!isFocusBubble)}
-            className="text-xs text-slate-600 hover:text-indigo-600 transition-colors"
-          >
-            {isFocusBubble ? '⭕ Focus Bubble: ON' : '◯ Focus Bubble: OFF'}
-          </button>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => setIsFocusBubble(!isFocusBubble)}
+              className="text-xs text-slate-600 hover:text-indigo-600 transition-colors"
+            >
+              {isFocusBubble ? '⭕ Focus Bubble: ON' : '◯ Focus Bubble: OFF'}
+            </button>
+            <button
+              onClick={() => setShowAdvancedFeatures(!showAdvancedFeatures)}
+              className="text-xs text-slate-600 hover:text-indigo-600 transition-colors flex items-center gap-1"
+            >
+              <Shield className="h-3 w-3" />
+              {showAdvancedFeatures ? 'Hide Advanced' : 'Show Advanced'}
+            </button>
+          </div>
         </div>
 
         {/* Combo Multiplier */}
@@ -174,6 +241,16 @@ export default function FocusPage() {
 
             {/* Ambient Soundscape */}
             <AmbientSoundscape isActive={isTimerActive} />
+
+            {/* Advanced: Breathing Detector */}
+            {showAdvancedFeatures && (
+              <BreathingDetector
+                isActive={isTimerActive}
+                onBreathDetected={(intensity) => {
+                  console.log('Breath detected:', intensity);
+                }}
+              />
+            )}
           </div>
 
           {/* Right Column: Pet & Boss Battle */}
@@ -185,6 +262,7 @@ export default function FocusPage() {
                 isActive={isTimerActive}
                 onMilestone={(stage) => {
                   console.log('Pet evolved to:', stage);
+                  triggerConfetti('levelUp');
                 }}
               />
             </GlassCard>
@@ -198,6 +276,11 @@ export default function FocusPage() {
                 distractionCount={0}
                 onVictory={handleBossVictory}
               />
+            )}
+
+            {/* Advanced: Distraction Shield */}
+            {showAdvancedFeatures && (
+              <DistractionShield isActive={isTimerActive} onEmergencyExit={handleEmergencyExit} />
             )}
           </div>
         </div>
