@@ -103,9 +103,22 @@ class FocusSessionsDB {
       const transaction = this.db!.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
       const index = store.index('synced');
-      const request = index.getAll(false);
+      const results: FocusSessionRecord[] = [];
 
-      request.onsuccess = () => resolve(request.result);
+      const request = index.openCursor();
+
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest).result;
+        if (cursor) {
+          if (cursor.value.synced === false) {
+            results.push(cursor.value);
+          }
+          cursor.continue();
+        } else {
+          resolve(results);
+        }
+      };
+
       request.onerror = () => reject(request.error);
     });
   }
