@@ -53,14 +53,15 @@ export default function AnalyticsDashboard() {
   const [energyForecast, setEnergyForecast] = useState<EnergyForecast | null>(null);
   const [burnoutRisk, setBurnoutRisk] = useState<BurnoutRisk | null>(null);
 
-  const analyticsEngine = new AnalyticsEngine();
-
   const loadAnalyticsData = useCallback(async () => {
     if (!session?.user?.id) return;
 
     setIsLoading(true);
 
     try {
+      // Initialize analytics engine with userId
+      const analyticsEngine = new AnalyticsEngine(session.user.id);
+
       // Fetch data from API
       const response = await fetch(
         `/api/analytics/data?userId=${session.user.id}&start=${dateRange.start.toISOString()}&end=${dateRange.end.toISOString()}`
@@ -97,7 +98,7 @@ export default function AnalyticsDashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [session?.user?.id, dateRange, analyticsEngine]);
+  }, [session?.user?.id, dateRange]);
 
   useEffect(() => {
     loadAnalyticsData();
