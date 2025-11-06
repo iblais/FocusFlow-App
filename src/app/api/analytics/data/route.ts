@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
         energyLevel: log.level,
         tasksCompleted: dayTasks.length,
         focusQuality: log.focusQuality || 0,
-        workingMemoryScore: log.workingMemoryScore,
+        workingMemoryScore: log.workingMemoryScore ?? undefined,
       };
     });
 
