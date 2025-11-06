@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
       focusByDateHour.set(dateKey, {
         minutes: existing.minutes + (session.duration || 0),
         quality: Math.max(existing.quality, session.quality || 0),
-        distractions: existing.distractions + (session.distractions || 0),
+        distractions: existing.distractions + (session.distractionCount || 0),
       });
     });
 
