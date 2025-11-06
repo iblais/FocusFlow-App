@@ -86,10 +86,16 @@ export default function AnalyticsDashboard() {
         const forecast = await analyticsEngine.forecastEnergy(data.energyData);
         setEnergyForecast(forecast);
 
+        // Transform data for burnout risk calculation
+        const focusHours = data.focusData?.map((f: any) => f.focusMinutes / 60) || [];
+        const energyLevels = data.energyData.map((e: any) => e.energyLevel);
+        const taskCompletionRates = data.energyData.map((e: any) => e.tasksCompleted);
+
         const risk = await analyticsEngine.calculateBurnoutRisk({
-          focusData: data.focusData,
-          energyData: data.energyData,
-          tasksCompleted: data.weeklyStats?.tasksCompleted.total || 0,
+          focusHours,
+          energyLevels,
+          taskCompletionRates,
+          streakDays: 0, // TODO: Fetch from user profile
         });
         setBurnoutRisk(risk);
       }
