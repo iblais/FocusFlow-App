@@ -4,10 +4,6 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 const suggestionSchema = z.object({
   taskTitle: z.string().min(1),
   currentSteps: z.array(z.string()),
@@ -47,6 +43,11 @@ Suggest the next micro-step as JSON:
   "energyLevel": "MEDIUM",
   "reasoning": "Why this step should come next"
 }`;
+
+    // Initialize OpenAI client (lazy initialization to avoid build-time errors)
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4-turbo-preview',

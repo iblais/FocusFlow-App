@@ -4,10 +4,6 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 const parseSchema = z.object({
   text: z.string().min(1),
   userId: z.string(),
@@ -58,6 +54,11 @@ Return JSON:
     "estimatedDuration": minutes or null
   }
 }`;
+
+    // Initialize OpenAI client (lazy initialization to avoid build-time errors)
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4-turbo-preview',

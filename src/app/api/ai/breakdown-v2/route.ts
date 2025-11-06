@@ -6,10 +6,6 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import type { TaskTreeNode, MicroStep, TaskCompletionPrediction } from '@/types/adhd-task-system';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 const breakdownSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
@@ -153,6 +149,11 @@ Provide a JSON response with this exact structure:
   "adjustedEstimate": 35, // Your recommended time estimate based on learning
   "confidence": 0.85 // 0-1 confidence in the estimate
 }`;
+
+    // Initialize OpenAI client (lazy initialization to avoid build-time errors)
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     // Call OpenAI
     const completion = await openai.chat.completions.create({
