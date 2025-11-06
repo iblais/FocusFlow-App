@@ -6,7 +6,7 @@
  * dependency visualization, and quick actions
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import {
   Clock,
@@ -63,11 +63,7 @@ export function KanbanBoard({
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredColumn, setHoveredColumn] = useState<BoardColumn | null>(null);
 
-  useEffect(() => {
-    loadTasks();
-  }, [userId]);
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     setIsLoading(true);
     try {
       const records = await tasksDB.getAllTasks(userId);
@@ -78,7 +74,11 @@ export function KanbanBoard({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
 
   const tasksByColumn = useMemo(() => {
     const grouped: Record<BoardColumn, KanbanCard[]> = {
