@@ -68,14 +68,21 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  accounts      Account[]
-  sessions      Session[]
-  profile       UserProfile?
-  tasks         Task[]
-  focusSessions FocusSession[]
-  achievements  UserAchievement[]
-  dailyCheckins DailyCheckin[]
-  rewards       Reward[]
+  accounts              Account[]
+  sessions              Session[]
+  profile               UserProfile?
+  tasks                 Task[]
+  focusSessions         FocusSession[]
+  achievements          UserAchievement[]
+  dailyCheckins         DailyCheckin[]
+  rewards               Reward[]
+  taskTemplates         TaskTemplate[]
+  energyPatterns        EnergyPattern[]
+  timeEstimates         TimeEstimate[]
+  collaborationsOwned   CollaborationLink[] @relation("CollaborationOwner")
+  collaborationsShared  CollaborationLink[] @relation("CollaborationPartner")
+  procrastinationEvents ProcrastinationEvent[]
+  quickCaptures         QuickCapture[]
 
   @@index([email])
 }
@@ -156,14 +163,25 @@ model Task {
   priority        Int         @default(0)
   dueDate         DateTime?
 
+  // Kanban board position
+  boardColumn     String?     @default("todo") // todo, in-progress, done
+  boardPosition   Int?        // Position within column
+
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   // Relations
-  focusSessions   FocusSession[]
+  focusSessions         FocusSession[]
+  dependencies          TaskRelationship[] @relation("TaskDependencies")
+  dependents            TaskRelationship[] @relation("TaskDependents")
+  sharedWith            SharedTask[]
+  procrastinationEvents ProcrastinationEvent[]
+  history               TaskHistory[]
+  timeEstimates         TimeEstimate[]
 
   @@index([userId, status])
   @@index([parentTaskId])
+  @@index([userId, boardColumn])
 }
 
 model FocusSession {
@@ -280,4 +298,253 @@ model Reward {
   updatedAt   DateTime @updatedAt
 
   @@index([userId, claimed])
+}
+
+// ADHD-Optimized Task System Models
+
+enum DependencyType {
+  BLOCKS          // Must complete before dependent can start
+  SUGGESTS        // Soft recommendation
+  REQUIRES        // Required but not blocking
+}
+
+enum RelationshipType {
+  ACCOUNTABILITY_PARTNER
+  TASK_COLLABORATOR
+  PROGRESS_VIEWER
+}
+
+model TaskTemplate {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name            String
+  description     String?     @db.Text
+
+  // Template structure
+  taskStructure   Json        // Tree of subtasks and micro-steps
+
+  // Default values
+  defaultEnergy   EnergyLevel @default(MEDIUM)
+  defaultDuration Int?        // in minutes
+  defaultTags     String[]
+
+  // Usage patterns
+  useCount        Int         @default(0)
+  lastUsed        DateTime?
+
+  // Context hints
+  bestTimeOfDay   String?     // "morning", "afternoon", "evening"
+  requiredEnergy  Int?        // 1-5 scale
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([userId])
+}
+
+model TaskRelationship {
+  id              String         @id @default(cuid())
+
+  taskId          String
+  task            Task           @relation("TaskDependencies", fields: [taskId], references: [id], onDelete: Cascade)
+
+  dependsOnId     String
+  dependsOn       Task           @relation("TaskDependents", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  type            DependencyType @default(BLOCKS)
+
+  createdAt       DateTime       @default(now())
+
+  @@unique([taskId, dependsOnId])
+  @@index([taskId])
+  @@index([dependsOnId])
+}
+
+model EnergyPattern {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Time-based patterns
+  hourOfDay       Int      // 0-23
+  dayOfWeek       Int      // 0-6 (Sunday=0)
+
+  // Measured energy
+  reportedEnergy  Int      // 1-5 scale
+  actualEnergy    Int?     // Derived from performance metrics
+
+  // Context
+  weather         String?  // "sunny", "rainy", "cloudy"
+  temperature     Int?     // Celsius
+  sleepQuality    Int?     // 1-5 from DailyCheckin
+
+  // Performance metrics
+  focusQuality    Int?     // 0-100 from focus sessions
+  tasksCompleted  Int      @default(0)
+
+  recordedAt      DateTime @default(now())
+
+  @@index([userId, hourOfDay, dayOfWeek])
+  @@index([userId, recordedAt])
+}
+
+model TimeEstimate {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  taskId          String
+  task            Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  // Estimation data
+  estimatedTime   Int      // in minutes
+  actualTime      Int?     // in minutes
+  accuracyScore   Float?   // 0-1 (1 = perfect estimate)
+
+  // Context at estimation time
+  energyLevel     EnergyLevel
+  timeOfDay       String?
+  userExperience  Int      @default(0) // How many similar tasks completed
+
+  // Learning data
+  aiSuggested     Boolean  @default(false)
+  userAdjusted    Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([userId, taskId])
+  @@index([userId, createdAt])
+}
+
+model CollaborationLink {
+  id              String           @id @default(cuid())
+
+  userId          String
+  user            User             @relation("CollaborationOwner", fields: [userId], references: [id], onDelete: Cascade)
+
+  partnerId       String
+  partner         User             @relation("CollaborationPartner", fields: [partnerId], references: [id], onDelete: Cascade)
+
+  type            RelationshipType @default(ACCOUNTABILITY_PARTNER)
+
+  // Permissions
+  canViewProgress Boolean          @default(true)
+  canEditTasks    Boolean          @default(false)
+  canAssignTasks  Boolean          @default(false)
+
+  // Status
+  status          String           @default("pending") // pending, accepted, rejected
+  invitedAt       DateTime         @default(now())
+  acceptedAt      DateTime?
+
+  // Shared tasks
+  sharedTasks     SharedTask[]
+
+  @@unique([userId, partnerId])
+  @@index([userId])
+  @@index([partnerId])
+}
+
+model SharedTask {
+  id                  String            @id @default(cuid())
+
+  taskId              String
+  task                Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  collaborationId     String
+  collaboration       CollaborationLink @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+
+  // Assignment
+  assignedBy          String?
+  assignedTo          String?
+  assignedAt          DateTime?
+  acceptedAt          DateTime?
+
+  // Progress visibility
+  lastProgressUpdate  DateTime?
+  progressPercentage  Int               @default(0)
+
+  createdAt           DateTime          @default(now())
+
+  @@unique([taskId, collaborationId])
+  @@index([taskId])
+  @@index([collaborationId])
+}
+
+model ProcrastinationEvent {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  taskId          String
+  task            Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  // Event data
+  eventType       String   // "defer", "skip", "distraction_shield"
+  reason          String?  @db.Text
+  emotionalState  String?  // "overwhelmed", "anxious", "unmotivated"
+
+  // Context
+  timeOfDay       String
+  energyLevel     Int?     // 1-5
+  previousStreak  Int      @default(0)
+
+  // AI intervention
+  interventionShown Boolean @default(false)
+  interventionType  String? // "break_suggestion", "task_breakdown", "accountability_ping"
+  interventionAccepted Boolean @default(false)
+
+  recordedAt      DateTime @default(now())
+
+  @@index([userId, taskId])
+  @@index([userId, recordedAt])
+}
+
+model TaskHistory {
+  id              String   @id @default(cuid())
+  taskId          String
+  task            Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  // Change tracking
+  changeType      String   // "created", "updated", "status_change", "priority_change"
+  oldValue        Json?
+  newValue        Json?
+
+  changedBy       String?  // userId if changed by collaborator
+
+  recordedAt      DateTime @default(now())
+
+  @@index([taskId, recordedAt])
+}
+
+model QuickCapture {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Input data
+  captureMethod   String   // "voice", "photo", "email", "text"
+  rawContent      String   @db.Text
+  mediaUrl        String?  // For photos/audio
+
+  // AI parsing
+  parsedTitle     String?
+  parsedDescription String? @db.Text
+  parsedDueDate   DateTime?
+  parsedTags      String[]
+  parsedPriority  Int?
+
+  // Processing status
+  processed       Boolean  @default(false)
+  convertedToTask Boolean  @default(false)
+  taskId          String?
+
+  capturedAt      DateTime @default(now())
+  processedAt     DateTime?
+
+  @@index([userId, processed])
+  @@index([userId, capturedAt])
 }
