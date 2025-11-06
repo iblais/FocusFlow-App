@@ -220,6 +220,7 @@ export interface KanbanCard {
   dueDate?: Date;
   tags: string[];
   priority: number;
+  difficulty?: number; // 1-10 scale
   age: number; // Days since creation
   dependencies: string[]; // Task IDs
   hasBlockers: boolean;
