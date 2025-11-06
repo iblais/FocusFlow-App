@@ -6,7 +6,7 @@
  * ADHD-friendly interventions to help users stay on track
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Heart,
@@ -71,37 +71,32 @@ export function ProcrastinationGuardian({
   const [emotionalState, setEmotionalState] = useState<EmotionalState | null>(null);
   const [isMonitoring, setIsMonitoring] = useState(false);
 
-  useEffect(() => {
-    startMonitoring();
-    return () => setIsMonitoring(false);
-  }, [taskId]);
-
-  const startMonitoring = async () => {
-    setIsMonitoring(true);
-
-    // Check for procrastination patterns
-    const risk = await calculateProcrastinationRisk();
-    setProcrastinationRisk(risk);
-
-    if (risk > 0.6) {
-      // High risk - show intervention
-      await generateIntervention(risk);
+  const logIntervention = useCallback(async (
+    interventionData: InterventionMessage,
+    accepted: boolean
+  ) => {
+    try {
+      await fetch('/api/analytics/procrastination-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          taskId,
+          eventType: 'intervention',
+          interventionShown: true,
+          interventionType: interventionData.type,
+          interventionAccepted: accepted,
+          emotionalState,
+          timeOfDay: getTimeOfDay(),
+          energyLevel: await getCurrentEnergyLevel(),
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to log intervention:', error);
     }
+  }, [userId, taskId, emotionalState]);
 
-    // Set up periodic checks
-    const intervalId = setInterval(async () => {
-      const newRisk = await calculateProcrastinationRisk();
-      setProcrastinationRisk(newRisk);
-
-      if (newRisk > 0.7 && !showIntervention) {
-        await generateIntervention(newRisk);
-      }
-    }, 5 * 60 * 1000); // Check every 5 minutes
-
-    return () => clearInterval(intervalId);
-  };
-
-  const calculateProcrastinationRisk = async (): Promise<number> => {
+  const calculateProcrastinationRisk = useCallback(async (): Promise<number> => {
     try {
       const response = await fetch('/api/analytics/procrastination-risk', {
         method: 'POST',
@@ -121,9 +116,9 @@ export function ProcrastinationGuardian({
     }
 
     return 0;
-  };
+  }, [userId, taskId]);
 
-  const generateIntervention = async (risk: number) => {
+  const generateIntervention = useCallback(async (risk: number) => {
     try {
       const response = await fetch('/api/ai/generate-intervention', {
         method: 'POST',
@@ -148,7 +143,37 @@ export function ProcrastinationGuardian({
     } catch (error) {
       console.error('Failed to generate intervention:', error);
     }
-  };
+  }, [userId, taskId, taskTitle, emotionalState, logIntervention]);
+
+  const startMonitoring = useCallback(async () => {
+    setIsMonitoring(true);
+
+    // Check for procrastination patterns
+    const risk = await calculateProcrastinationRisk();
+    setProcrastinationRisk(risk);
+
+    if (risk > 0.6) {
+      // High risk - show intervention
+      await generateIntervention(risk);
+    }
+
+    // Set up periodic checks
+    const intervalId = setInterval(async () => {
+      const newRisk = await calculateProcrastinationRisk();
+      setProcrastinationRisk(newRisk);
+
+      if (newRisk > 0.7 && !showIntervention) {
+        await generateIntervention(newRisk);
+      }
+    }, 5 * 60 * 1000); // Check every 5 minutes
+
+    return () => clearInterval(intervalId);
+  }, [calculateProcrastinationRisk, generateIntervention, showIntervention]);
+
+  useEffect(() => {
+    startMonitoring();
+    return () => setIsMonitoring(false);
+  }, [startMonitoring]);
 
   const handleInterventionAction = async (action: string, data?: any) => {
     if (!intervention) return;
@@ -186,31 +211,6 @@ export function ProcrastinationGuardian({
 
       default:
         console.warn('Unknown intervention action:', action);
-    }
-  };
-
-  const logIntervention = async (
-    interventionData: InterventionMessage,
-    accepted: boolean
-  ) => {
-    try {
-      await fetch('/api/analytics/procrastination-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          taskId,
-          eventType: 'intervention',
-          interventionShown: true,
-          interventionType: interventionData.type,
-          interventionAccepted: accepted,
-          emotionalState,
-          timeOfDay: getTimeOfDay(),
-          energyLevel: await getCurrentEnergyLevel(),
-        }),
-      });
-    } catch (error) {
-      console.error('Failed to log intervention:', error);
     }
   };
 
@@ -387,11 +387,7 @@ export function ProcrastinationInsights({ userId }: { userId: string }) {
   const [events, setEvents] = useState<ProcrastinationEvent[]>([]);
   const [patterns, setPatterns] = useState<any>(null);
 
-  useEffect(() => {
-    loadData();
-  }, [userId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const response = await fetch(`/api/analytics/procrastination?userId=${userId}`);
       if (response.ok) {
@@ -402,7 +398,11 @@ export function ProcrastinationInsights({ userId }: { userId: string }) {
     } catch (error) {
       console.error('Failed to load procrastination insights:', error);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   if (!patterns) {
     return (
