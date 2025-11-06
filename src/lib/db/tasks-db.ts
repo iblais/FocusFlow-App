@@ -215,9 +215,22 @@ class TasksDB {
       const transaction = db.transaction([STORES.TASKS], 'readonly');
       const store = transaction.objectStore(STORES.TASKS);
       const index = store.index('synced');
-      const request = index.getAll(false);
+      const request = index.openCursor();
+      const results: TaskOfflineRecord[] = [];
 
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+        if (cursor) {
+          const record = cursor.value as TaskOfflineRecord;
+          if (record.synced === false) {
+            results.push(record);
+          }
+          cursor.continue();
+        } else {
+          resolve(results);
+        }
+      };
+
       request.onerror = () => reject(request.error);
     });
   }
@@ -284,14 +297,22 @@ class TasksDB {
       const transaction = db.transaction([STORES.QUICK_CAPTURES], 'readonly');
       const store = transaction.objectStore(STORES.QUICK_CAPTURES);
       const index = store.index('processed');
-      const request = index.getAll(false);
+      const request = index.openCursor();
+      const results: QuickCaptureOfflineRecord[] = [];
 
-      request.onsuccess = () => {
-        const captures = (request.result || []).filter(
-          (capture) => capture.data.userId === userId
-        );
-        resolve(captures);
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+        if (cursor) {
+          const record = cursor.value as QuickCaptureOfflineRecord;
+          if (record.data.processed === false && record.data.userId === userId) {
+            results.push(record);
+          }
+          cursor.continue();
+        } else {
+          resolve(results);
+        }
       };
+
       request.onerror = () => reject(request.error);
     });
   }
