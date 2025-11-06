@@ -5,6 +5,9 @@
  * Main analytics dashboard integrating all visualization components
  */
 
+// Force dynamic rendering (no static generation)
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
@@ -396,10 +399,14 @@ export default function AnalyticsDashboard() {
     </div>
   );
 
-  if (!session) {
+  // Handle loading and authentication states
+  if (!session || !session.user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400">Please sign in to view analytics</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4" />
+          <p className="text-gray-400">Loading analytics...</p>
+        </div>
       </div>
     );
   }
