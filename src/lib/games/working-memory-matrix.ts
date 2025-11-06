@@ -113,7 +113,8 @@ export class WorkingMemoryMatrix extends BaseGameEngine {
 
   private generateGrid(): MatrixCell[] {
     const cells: MatrixCell[] = [];
-    const { gridSize, symbols } = this.state;
+    const { gridSize } = this.state;
+    const { symbols } = this.config;
 
     for (let y = 0; y < gridSize; y++) {
       for (let x = 0; x < gridSize; x++) {
