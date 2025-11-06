@@ -73,6 +73,7 @@ model User {
   profile               UserProfile?
   tasks                 Task[]
   focusSessions         FocusSession[]
+  energyLogs            EnergyLog[]
   achievements          UserAchievement[]
   dailyCheckins         DailyCheckin[]
   rewards               Reward[]
@@ -194,12 +195,16 @@ model FocusSession {
 
   // Session details
   startTime         DateTime @default(now())
+  startedAt         DateTime @default(now()) // Alias for compatibility
   endTime           DateTime?
   duration          Int?     // in seconds
   completed         Boolean  @default(false)
+  quality           Int?     // 0-100 score
+  energyLevel       Int?     // 1-5 scale
 
   // Distractions (JSON array of distraction events)
   distractions      Json?
+  distractionEvents Json?    // Alias for compatibility
   distractionCount  Int      @default(0)
 
   // Neurofeedback metrics
@@ -242,6 +247,25 @@ model DailyCheckin {
 
   @@unique([userId, date])
   @@index([userId, date])
+}
+
+model EnergyLog {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  timestamp          DateTime @default(now())
+  level              Int      // 1-5 energy scale
+  focusQuality       Int?     // 0-100
+  workingMemoryScore Int?     // Game score
+  mood               Int?     // 1-5 mood scale
+  physicalActivity   Int?     // Minutes of activity
+  context            Json?    // Additional context data
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId, timestamp])
 }
 
 enum AchievementType {
