@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Zap, Target, TrendingUp, Sparkles } from "lucide-react";
 import { AnimatedBackground } from "@/components/design/AnimatedBackground";
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, GlassCardContent } from "@/components/design/GlassCard";
@@ -8,12 +10,27 @@ import { AnimatedStat } from "@/components/design/AnimatedNumber";
 import { FloatingParticles } from "@/components/design/FloatingParticles";
 import { motion } from "framer-motion";
 import { useParticleRewards } from "@/hooks/use-particle-rewards";
+import { TaskForm } from "@/components/tasks/task-form";
 
 export default function HomePage() {
+  const router = useRouter();
   const { triggerConfetti } = useParticleRewards();
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
 
   const handleStartCheckin = () => {
     triggerConfetti('focusSession');
+  };
+
+  const handleAddNewTask = () => {
+    setIsTaskFormOpen(true);
+  };
+
+  const handleStartFocusSession = () => {
+    router.push('/focus');
+  };
+
+  const handleTaskCreated = () => {
+    triggerConfetti('taskComplete');
   };
 
   return (
@@ -109,12 +126,14 @@ export default function HomePage() {
             <NeumorphButton
               variant="secondary"
               icon={<Plus className="h-4 w-4" />}
+              onClick={handleAddNewTask}
             >
               Add New Task
             </NeumorphButton>
             <NeumorphButton
               variant="energy"
               icon={<Zap className="h-4 w-4" />}
+              onClick={handleStartFocusSession}
             >
               Start Focus Session
             </NeumorphButton>
@@ -136,6 +155,13 @@ export default function HomePage() {
           </GlassCardContent>
         </GlassCard>
       </div>
+
+      {/* Task Creation Form */}
+      <TaskForm
+        open={isTaskFormOpen}
+        onOpenChange={setIsTaskFormOpen}
+        onSuccess={handleTaskCreated}
+      />
     </AnimatedBackground>
   );
 }

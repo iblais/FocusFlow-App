@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateTaskSchema, CreateTaskInput } from "@/types/task";
@@ -25,15 +25,30 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Sparkles } from "lucide-react";
 
+interface EditingTask {
+  id: string;
+  title: string;
+  description?: string | null;
+  estimatedTime?: number | null;
+  energyLevel: string;
+  difficulty?: number | null;
+  priority: number;
+  dueDate?: Date | string | null;
+  tags: string[];
+}
+
 interface TaskFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  editingTask?: EditingTask | null;
 }
 
-export function TaskForm({ open, onOpenChange, onSuccess }: TaskFormProps) {
+export function TaskForm({ open, onOpenChange, onSuccess, editingTask }: TaskFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isGettingAIBreakdown, setIsGettingAIBreakdown] = useState(false);
+
+  const isEditMode = !!editingTask;
 
   const {
     register,
@@ -51,6 +66,27 @@ export function TaskForm({ open, onOpenChange, onSuccess }: TaskFormProps) {
     },
   });
 
+  // Populate form when editing
+  useEffect(() => {
+    if (editingTask && open) {
+      setValue("title", editingTask.title);
+      setValue("description", editingTask.description || "");
+      setValue("estimatedTime", editingTask.estimatedTime || undefined);
+      setValue("energyLevel", editingTask.energyLevel as "LOW" | "MEDIUM" | "HIGH");
+      setValue("difficulty", editingTask.difficulty || undefined);
+      setValue("priority", editingTask.priority);
+      setValue("tags", editingTask.tags || []);
+      if (editingTask.dueDate) {
+        // Format date for datetime-local input
+        const date = new Date(editingTask.dueDate);
+        const formatted = date.toISOString().slice(0, 16);
+        setValue("dueDate", formatted);
+      }
+    } else if (!open) {
+      reset();
+    }
+  }, [editingTask, open, setValue, reset]);
+
   const energyLevel = watch("energyLevel");
   const estimatedTime = watch("estimatedTime");
 
@@ -58,8 +94,11 @@ export function TaskForm({ open, onOpenChange, onSuccess }: TaskFormProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/tasks", {
-        method: "POST",
+      const url = isEditMode ? `/api/tasks/${editingTask.id}` : "/api/tasks";
+      const method = isEditMode ? "PATCH" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -68,15 +107,15 @@ export function TaskForm({ open, onOpenChange, onSuccess }: TaskFormProps) {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to create task");
+        throw new Error(error.error || `Failed to ${isEditMode ? 'update' : 'create'} task`);
       }
 
       reset();
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error("Error creating task:", error);
-      alert(error instanceof Error ? error.message : "Failed to create task");
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} task:`, error);
+      alert(error instanceof Error ? error.message : `Failed to ${isEditMode ? 'update' : 'create'} task`);
     } finally {
       setIsLoading(false);
     }
@@ -131,9 +170,11 @@ export function TaskForm({ open, onOpenChange, onSuccess }: TaskFormProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Task</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Task' : 'Create New Task'}</DialogTitle>
           <DialogDescription>
-            Add a new task to your list. AI can help break it down into manageable steps.
+            {isEditMode
+              ? 'Update your task details below.'
+              : 'Add a new task to your list. AI can help break it down into manageable steps.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -281,10 +322,10 @@ export function TaskForm({ open, onOpenChange, onSuccess }: TaskFormProps) {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  {isEditMode ? 'Saving...' : 'Creating...'}
                 </>
               ) : (
-                "Create Task"
+                isEditMode ? 'Save Changes' : 'Create Task'
               )}
             </Button>
           </DialogFooter>

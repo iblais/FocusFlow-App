@@ -26,7 +26,7 @@ export const CreateTaskSchema = z.object({
   energyLevel: EnergyLevel.default("MEDIUM"),
   difficulty: z.number().min(1).max(10).optional(),
   priority: z.number().min(0).max(10).default(0),
-  dueDate: z.string().datetime().optional(),
+  dueDate: z.string().optional(), // Accept any date string format (datetime-local compatible)
   tags: z.array(z.string()).default([]),
 });
 export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
@@ -41,8 +41,8 @@ export const UpdateTaskSchema = z.object({
   energyLevel: EnergyLevel.optional(),
   difficulty: z.number().min(1).max(10).optional(),
   priority: z.number().min(0).max(10).optional(),
-  dueDate: z.string().datetime().optional().nullable(),
-  deferredUntil: z.string().datetime().optional().nullable(),
+  dueDate: z.string().optional().nullable(), // Accept any date string format
+  deferredUntil: z.string().optional().nullable(), // Accept any date string format
   tags: z.array(z.string()).optional(),
   microSteps: z.array(MicroStepSchema).optional(),
 });
@@ -54,8 +54,8 @@ export const TaskFilterSchema = z.object({
   energyLevel: EnergyLevel.optional(),
   parentTaskId: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  dueBefore: z.string().datetime().optional(),
-  dueAfter: z.string().datetime().optional(),
+  dueBefore: z.string().optional(), // Accept any date string format
+  dueAfter: z.string().optional(), // Accept any date string format
 });
 export type TaskFilter = z.infer<typeof TaskFilterSchema>;
 

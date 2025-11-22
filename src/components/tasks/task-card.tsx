@@ -33,9 +33,10 @@ interface TaskCardProps {
   task: Task;
   onStatusChange?: (taskId: string, status: string) => void;
   onDelete?: (taskId: string) => void;
+  onEdit?: (task: Task) => void;
 }
 
-export function TaskCard({ task, onStatusChange, onDelete }: TaskCardProps) {
+export function TaskCard({ task, onStatusChange, onDelete, onEdit }: TaskCardProps) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleStatusToggle = async () => {
@@ -154,10 +155,7 @@ export function TaskCard({ task, onStatusChange, onDelete }: TaskCardProps) {
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              onClick={() => {
-                // TODO: Implement edit
-                console.log("Edit task:", task.id);
-              }}
+              onClick={() => onEdit?.(task)}
             >
               <Edit className="h-4 w-4" />
             </Button>
