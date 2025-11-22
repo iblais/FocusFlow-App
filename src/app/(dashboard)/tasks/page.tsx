@@ -30,7 +30,25 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    setIsFormOpen(true);
+  };
+
+  const handleFormClose = (open: boolean) => {
+    setIsFormOpen(open);
+    if (!open) {
+      setEditingTask(null);
+    }
+  };
+
+  const handleNewTask = () => {
+    setEditingTask(null);
+    setIsFormOpen(true);
+  };
 
   const fetchTasks = useCallback(async () => {
     setIsLoading(true);
@@ -117,7 +135,7 @@ export default function TasksPage() {
             Manage and organize your tasks
           </p>
         </div>
-        <Button onClick={() => setIsFormOpen(true)}>
+        <Button onClick={handleNewTask}>
           <Plus className="mr-2 h-4 w-4" />
           New Task
         </Button>
@@ -152,7 +170,7 @@ export default function TasksPage() {
           <p className="text-muted-foreground mb-4">
             No tasks yet. Create your first task to get started!
           </p>
-          <Button onClick={() => setIsFormOpen(true)}>
+          <Button onClick={handleNewTask}>
             <Plus className="mr-2 h-4 w-4" />
             Create Task
           </Button>
@@ -172,6 +190,7 @@ export default function TasksPage() {
                     task={task}
                     onStatusChange={handleStatusChange}
                     onDelete={handleDelete}
+                    onEdit={handleEdit}
                   />
                 ))}
               </div>
@@ -191,6 +210,7 @@ export default function TasksPage() {
                     task={task}
                     onStatusChange={handleStatusChange}
                     onDelete={handleDelete}
+                    onEdit={handleEdit}
                   />
                 ))}
               </div>
@@ -202,8 +222,9 @@ export default function TasksPage() {
       {/* Task Form Dialog */}
       <TaskForm
         open={isFormOpen}
-        onOpenChange={setIsFormOpen}
+        onOpenChange={handleFormClose}
         onSuccess={fetchTasks}
+        editingTask={editingTask}
       />
     </div>
   );
